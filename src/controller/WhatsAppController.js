@@ -1,14 +1,58 @@
 import { Format } from "./../util/Format";
 import { CameraController } from "./CameraController";
+import { MicrophoneController } from "./MicrophoneController";
 import { DocumentPreviewController } from "./DocumentPreviewController";
+import { Firebase } from "./../util/Firebase";
+import { User } from "./../model/User";
 
 export class WhatsAppController {
   constructor() {
     console.log("WhatsAppController OK");
 
+    this._firebase = new Firebase();
+    this.initAuth();
     this.elementsPrototype();
     this.LoadElementes();
     this.initEvents();
+  }
+
+  initAuth() {
+    this._firebase
+      .initAuth()
+      .then(response => {
+        this._user = new User(response.user.email);
+
+        this._user.on("datachange", data => {
+          document.querySelector("title").innerHTML =
+            data.name + " - WhatsApp Clone";
+
+          this.el.inputNamePanelEditProfile.innerHTML = data.name;
+
+          if (data.photo) {
+            let photo = this.el.imgPanelEditProfile;
+            photo.src = data.photo;
+            photo.show();
+            this.el.imgDefaultPanelEditProfile.hide();
+
+            let photo2 = this.el.myPhoto.querySelector("img");
+            photo2.src = data.photo;
+            photo2.show();
+          }
+        });
+
+        this._user.name = response.user.displayName;
+        this._user.email = response.user.email;
+        this._user.photo = response.user.photoURL;
+
+        this._user.save().then(() => {
+          this.el.appContent.css({
+            display: "flex"
+          });
+        });
+      })
+      .catch(err => {
+        console.log(err);
+      });
   }
 
   LoadElementes() {
@@ -206,6 +250,9 @@ export class WhatsAppController {
     });
 
     this.el.inputDocument.on("change", e => {
+      this.el.panelDocumentPreview.css({
+        height: "1%"
+      });
       if (this.el.inputDocument.files.length) {
         let file = this.el.inputDocument.files[0];
         this._documentPreviewController = new DocumentPreviewController(file);
@@ -216,9 +263,16 @@ export class WhatsAppController {
             this.el.infoPanelDocumentPreview.innerHTML = result.info;
             this.el.imagePanelDocumentPreview.show();
             this.el.filePanelDocumentPreview.hide();
+
+            this.el.panelDocumentPreview.css({
+              height: "calc(100% - 120px)"
+            });
           })
           .catch(err => {
-            console.log(file.type);
+            this.el.panelDocumentPreview.css({
+              height: "calc(100% - 120px)"
+            });
+
             switch (file.type) {
               case "application/vnd.ms-excel":
               case "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
@@ -273,16 +327,29 @@ export class WhatsAppController {
     this.el.btnSendMicrophone.on("click", e => {
       this.el.recordMicrophone.show();
       this.el.btnSendMicrophone.hide();
-      this.startRecordMicrophoneTime();
+
+      this._microphoneController = new MicrophoneController();
+
+      this._microphoneController.on("ready", musica => {
+        console.log("ready event");
+        this._microphoneController.startRecorder();
+      });
+
+      this._microphoneController.on("recordtimer", timer => {
+        this.el.recordMicrophoneTimer.innerHTML = Format.toTime(timer);
+      });
     });
 
     this.el.btnCancelMicrophone.on("click", e => {
+      this._microphoneController.stopRecorder();
       this.closeRecordMicrophone();
     });
 
     this.el.btnFinishMicrophone.on("click", e => {
+      this._microphoneController.stopRecorder();
       this.closeRecordMicrophone();
     });
+
     this.el.inputText.on("keypress", e => {
       if (e.key === "Enter" && !e.ctrlKey) {
         e.preventDefault();
@@ -346,19 +413,9 @@ export class WhatsAppController {
     });
   }
 
-  startRecordMicrophoneTime() {
-    let start = Date.now();
-    this._recordMicrophoneInterval = setInterval(() => {
-      this.el.recordMicrophoneTimer.innerHTML = Format.toTime(
-        Date.now() - start
-      );
-    }, 100);
-  }
-
   closeRecordMicrophone() {
     this.el.recordMicrophone.hide();
     this.el.btnSendMicrophone.show();
-    clearInterval(this._recordMicrophoneInterval);
   }
 
   closeAllMainPanel() {

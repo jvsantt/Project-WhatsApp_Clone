@@ -175,16 +175,35 @@ export class WhatsAppController {
           let data = doc.data();
           data.id = doc.id;
 
+          let message = new Message();
+
+          message.fromJSON(data);
+
+          let me = data.from === this._user.email;
+
           if (!this.el.panelMessagesContainer.querySelector("#_" + data.id)) {
-            let message = new Message();
-
-            message.fromJSON(data);
-
-            let me = data.from === this._user.email;
+            if (!me) {
+              doc.ref.set(
+                {
+                  status: "read"
+                },
+                {
+                  merge: true
+                }
+              );
+            }
 
             let view = message.getViewElement(me);
 
             this.el.panelMessagesContainer.appendChild(view);
+          } else if (me) {
+            let msgEl = this.el.panelMessagesContainer.querySelector(
+              "#_" + data.id
+            );
+
+            msgEl.querySelector(
+              ".message-status"
+            ).innerHTML = message.getStatusViewElement().outerHTML;
           }
           if (autoScroll) {
             this.el.panelMessagesContainer.scrollTop =
@@ -275,6 +294,7 @@ export class WhatsAppController {
       } else {
         this.el.inputSearchContactsPlaceholder.show();
       }
+      this._user.getContacts(this.el.inputSearchContacts.value);
     });
 
     this.el.myPhoto.on("click", e => {
@@ -372,10 +392,8 @@ export class WhatsAppController {
     });
 
     this.el.inputPhoto.on("change", e => {
-      console.log(this.el.inputPhoto.files);
-
       [...this.el.inputPhoto.files].forEach(file => {
-        console.log(file);
+        Message.sendImage(this._contactActive.chatId, this._user.email, file);
       });
     });
 

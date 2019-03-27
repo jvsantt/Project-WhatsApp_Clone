@@ -8,7 +8,7 @@ export class Firebase {
       authDomain: "whatsapp-clone-8239f.firebaseapp.com",
       databaseURL: "https://whatsapp-clone-8239f.firebaseio.com",
       projectId: "whatsapp-clone-8239f",
-      storageBucket: "whatsapp-clone-8239f.appspot.com",
+      storageBucket: "gs://whatsapp-clone-8239f.appspot.com",
       messagingSenderId: "393633598535"
     };
     this.init();

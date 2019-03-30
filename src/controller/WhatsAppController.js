@@ -183,6 +183,8 @@ export class WhatsAppController {
 
           let me = data.from === this._user.email;
 
+          let view = message.getViewElement(me);
+
           if (!this.el.panelMessagesContainer.querySelector("#_" + data.id)) {
             if (!me) {
               doc.ref.set(
@@ -195,14 +197,16 @@ export class WhatsAppController {
               );
             }
 
-            let view = message.getViewElement(me);
-
             this.el.panelMessagesContainer.appendChild(view);
           } else {
-            let view = message.getViewElement(me);
-            this.el.panelMessagesContainer.querySelector(
+            let parent = this.el.panelMessagesContainer.querySelector(
               "#_" + data.id
-            ).innerHTML = view.innerHTML;
+            ).parentNode;
+
+            parent.replaceChild(
+              view,
+              this.el.panelMessagesContainer.querySelector("#_" + data.id)
+            );
           }
 
           if (
@@ -217,6 +221,30 @@ export class WhatsAppController {
               ".message-status"
             ).innerHTML = message.getStatusViewElement().outerHTML;
           }
+
+          if (message.type === "contact") {
+            view.querySelector(".btn-message-send").on("click", e => {
+              Chat.createIfNotExists(
+                this._user.email,
+                message.content.email
+              ).then(chat => {
+                let contact = new User(message.content.email);
+
+                contact.on("datachange", data => {
+                  contact.chatId = chat.id;
+
+                  this._user.addContact(contact);
+
+                  this._user.chatId = chat.id;
+
+                  contact.addContact(this._user);
+
+                  this.setActiveChat(contact);
+                });
+              });
+            });
+          }
+
           if (autoScroll) {
             this.el.panelMessagesContainer.scrollTop =
               this.el.panelMessagesContainer.scrollHeight -
@@ -634,6 +662,16 @@ export class WhatsAppController {
     });
 
     this.el.btnFinishMicrophone.on("click", e => {
+      this._microphoneController.on("recorded", (file, metadata) => {
+        Message.sendAudio(
+          this._contactActive.chatId,
+          this._user.email,
+          file,
+          metadata,
+          this._user.photo
+        );
+      });
+
       this._microphoneController.stopRecorder();
       this.closeRecordMicrophone();
     });

@@ -8,6 +8,7 @@ import { Chat } from "./../model/Chat";
 import { Message } from "../model/Message";
 import { Base64 } from "../util/Base64";
 import { ContactsController } from "../controller/ContactsController";
+import { Upload } from "../util/Upload";
 
 export class WhatsAppController {
   constructor() {
@@ -95,7 +96,9 @@ export class WhatsAppController {
                           }" class="_1wjpf">${contact.name}</span>
                       </div>
                       <div class="_3Bxar">
-                          <span class="_3T2VG">${contact.lastMessageTime}</span>
+                          <span class="_3T2VG">${Format.timeStampToTime(
+                            contact.lastMessageTime
+                          )}</span>
                       </div>
                   </div>
                   <div class="_1AwDx">
@@ -365,6 +368,19 @@ export class WhatsAppController {
       this.el.inputProfilePhoto.click();
     });
 
+    this.el.inputProfilePhoto.on("change", e => {
+      if (this.el.inputProfilePhoto.files.length > 0) {
+        let file = this.el.inputProfilePhoto.files[0];
+
+        Upload.send(file, this._user.email).then(snapshot => {
+          this._user.photo = snapshot.downloadURL;
+          this._user.save().then(() => {
+            this.el.btnClosePanelEditProfile.click();
+          });
+        });
+      }
+    });
+
     this.el.inputNamePanelEditProfile.on("keypress", e => {
       if (e.key === "Enter") {
         e.preventDefault();
@@ -481,18 +497,18 @@ export class WhatsAppController {
       let filename = `camera${Date.now()}.${ext}`;
 
       let picture = new Image();
-      picture.src = this.el.pictureCamera;
+      picture.src = this.el.pictureCamera.src;
       picture.onload = e => {
         let canvas = document.createElement("canvas");
         let context = canvas.getContext("2d");
 
-        canvas.whidth = picture.width;
+        canvas.width = picture.width;
         canvas.height = picture.height;
 
-        context.translate(picture.whidth, 0);
+        context.translate(picture.width, 0);
         context.scale(-1, 1);
 
-        context.drawImage(picture, 0, 0, canvas.whidth, canvas.height);
+        context.drawImage(picture, 0, 0, canvas.width, canvas.height);
 
         fetch(canvas.toDataURL(mimeType))
           .then(res => {

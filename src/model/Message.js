@@ -1,6 +1,8 @@
 import { Model } from "./Model";
 import { Firebase } from "../util/Firebase";
 import { Format } from "../util/Format";
+import { Upload } from "../util/Upload";
+import { Base64 } from "../util/Base64";
 
 export class Message extends Model {
   constructor(params) {
@@ -246,11 +248,9 @@ export class Message extends Model {
                 </div>
             </a>
             <div class="_3cMIj">
-                <span class="PyPig message-file-info">${this._data.info}</span>
-                <span class="PyPig message-file-type">${
-                  this._data.fileType
-                }</span>
-                <span class="PyPig message-file-size">${this._data.size}</span>
+                <span class="PyPig message-file-info">${this.info}</span>
+                <span class="PyPig message-file-type">${this.fileType}</span>
+                <span class="PyPig message-file-size">${this.size}</span>
             </div>
             <div class="_3Lj_s">
                 <div class="_1DZAH" role="button">
@@ -265,7 +265,7 @@ export class Message extends Model {
             `;
 
         div.on("click", e => {
-          window.open(this._data.content);
+          window.open(this.content);
         });
         break;
 
@@ -453,25 +453,7 @@ export class Message extends Model {
   }
 
   static upload(file, from) {
-    return new Promise((s, f) => {
-      let uploadTask = Firebase.hd()
-        .ref(from)
-        .child(Date.now() + "_" + file.name)
-        .put(file);
-
-      uploadTask.on(
-        "state_changed",
-        e => {
-          console.info("upload", e);
-        },
-        err => {
-          f(err);
-        },
-        () => {
-          s(uploadTask.snapshot);
-        }
-      );
-    });
+    return Upload.send(file, from);
   }
 
   static sendContact(chatId, from, contact) {
@@ -515,8 +497,7 @@ export class Message extends Model {
               filename: file.name,
               size: file.size,
               fileType: file.type,
-              status: "sent",
-              info
+              status: "sent"
             },
             {
               merge: true
@@ -561,6 +542,9 @@ export class Message extends Model {
             )
             .then(() => {
               s(docRef);
+            })
+            .catch(() => {
+              f();
             });
         });
     });

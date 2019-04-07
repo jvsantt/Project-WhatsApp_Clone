@@ -106,7 +106,7 @@ exports.saveLastMessage = functions.firestore
     console.log("[MESSAGE ID]", messageId);
 
     return new Promise((resolve, reject) => {
-      let chatRef = db.collection("chats").doc("chatId");
+      let chatRef = db.collection("chats").doc(chatId);
 
       chatRef.onSnapshot(snapChat => {
         let chatDoc = snapChat.data();
@@ -118,14 +118,15 @@ exports.saveLastMessage = functions.firestore
           .doc(messageId)
           .onSnapshot(snapMessage => {
             let messageDoc = snapMessage.data();
+
             console.log("[MESSAGE DATA", messageDoc);
 
             let userFrom = messageDoc.from;
             let userTo = Object.keys(chatDoc.users).filter(key => {
               return key !== encode64(userFrom);
             })[0];
-            console.log("[USER FROM]", userFrom);
-            console.log("[USER TO]", userTo);
+            console.log("[FROM]", userFrom);
+            console.log("[TO]", userTo);
 
             db.collection("users")
               .doc(decode64(userTo))
@@ -133,8 +134,8 @@ exports.saveLastMessage = functions.firestore
               .doc(encode64(userFrom))
               .set(
                 {
-                  LastMessage: messageDoc.content,
-                  LastMessageTime: new Data()
+                  lastMessage: messageDoc.content,
+                  lastMessageTime: new Date()
                 },
                 {
                   merge: true

@@ -2,7 +2,6 @@ import { Model } from "./Model";
 import { Firebase } from "../util/Firebase";
 import { Format } from "../util/Format";
 import { Upload } from "../util/Upload";
-import { Base64 } from "../util/Base64";
 
 export class Message extends Model {
   constructor(params) {
@@ -440,7 +439,7 @@ export class Message extends Model {
     let className = "message-in";
 
     if (me) {
-      className = "messagem-out";
+      className = "message-out";
 
       div
         .querySelector(".message-time")
